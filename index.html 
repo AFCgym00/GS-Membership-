@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Grace Square Fitness Club — Member Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background:#0d1512; color:#e8ede9; font-family:'Inter',sans-serif; }
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align:left; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#6c8177; text-transform:uppercase; padding:9px 10px; border-bottom:1px solid #26362f; position:sticky; top:0; background:#0d1512; white-space:nowrap; }
+  td { padding:9px 10px; border-bottom:1px solid #1b2622; font-size:13px; vertical-align:middle; white-space:nowrap; }
+  tr:hover td { background:#131e1a; }
+  ::-webkit-scrollbar { width:7px; height:7px; }
+  ::-webkit-scrollbar-thumb { background:#2a3b33; border-radius:4px; }
+  button, input, select { font-family:'Inter',sans-serif; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid #c9a24a; outline-offset:2px; }
+  a { color:inherit; }
+  .topbar { position:sticky; top:0; z-index:20; background:#0d1512ee; backdrop-filter:blur(6px); border-bottom:1px solid #1b2622; padding:14px 16px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  .brand { display:flex; align-items:center; gap:10px; min-width:0; }
+  .logo { width:34px; height:34px; border-radius:8px; background:#c9a24a22; display:flex; align-items:center; justify-content:center; color:#c9a24a; flex-shrink:0; font-size:18px; }
+  .title { font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .subtitle { font-size:10.5px; color:#6c8177; font-family:'JetBrains Mono',monospace; }
+  .btn-gold { background:#c9a24a; color:#0d1512; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer; flex-shrink:0; }
+  .notice { display:flex; align-items:center; gap:8px; font-size:11.5px; color:#6c8177; background:#131e1a; border:1px solid #26362f; border-radius:8px; padding:8px 12px; margin-bottom:16px; }
+  .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; overflow-x:auto; }
+  @media (max-width:720px){ .cards{ grid-auto-flow:column; grid-auto-columns:130px; grid-template-columns:none; } }
+  .card { background:#15201c; border:1px solid #26362f; border-radius:10px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .card-head { display:flex; align-items:center; gap:8px; }
+  .card-icon { width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .card-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.06em; color:#7d9186; text-transform:uppercase; }
+  .card-value { font-family:'Space Grotesk',sans-serif; font-size:22px; font-weight:600; color:#f2f5f1; line-height:1; }
+  .card-sub { font-size:11px; color:#5e7268; }
+  .section-label { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em; color:#6c8177; margin-bottom:8px; }
+  .period-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .period-btn { background:#131e1a; color:#c7d1cb; border:1px solid #26362f; border-radius:7px; padding:7px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .period-btn.active { background:#7ba7c9; color:#0d1512; border-color:#7ba7c9; }
+  .collection-box { background:linear-gradient(135deg,#15201c,#131e1a); border:1px solid #26362f; border-radius:10px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .collection-total { font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; color:#f2f5f1; }
+  .collection-sub { font-size:11.5px; color:#6c8177; }
+  .date-row { display:flex; gap:8px; margin-bottom:10px; align-items:center; flex-wrap:wrap; }
+  .input, select.input { background:#0d1512; border:1px solid #26362f; border-radius:8px; padding:7px 10px; color:#e8ede9; font-size:13px; }
+  .tower-row { display:flex; gap:7px; flex-wrap:wrap; }
+  .tower-btn { background:#15201c; color:#c7d1cb; border:1px solid #26362f; border-radius:7px; padding:6px 11px; font-size:12px; font-weight:600; cursor:pointer; }
+  .tower-btn.active { background:#c9a24a; color:#0d1512; border-color:#c9a24a; }
+  .search-row { display:flex; gap:8px; margin-bottom:14px; }
+  .search-wrap { position:relative; flex:1; }
+  .search-icon { position:absolute; left:11px; top:10px; color:#5e7268; font-size:14px; }
+  .search-input { width:100%; background:#0d1512; border:1px solid #26362f; border-radius:8px; padding:9px 12px 9px 32px; color:#e8ede9; font-size:14px; }
+  .filter-btn { background:#131e1a; border:1px solid #26362f; border-radius:8px; padding:0 14px; color:#c7d1cb; display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .active-filters { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; font-size:12px; }
+  .active-filters span { color:#c9a24a; }
+  .active-filters button { background:none; border:none; color:#6c8177; text-decoration:underline; cursor:pointer; }
+  .count-line { font-size:12px; color:#6c8177; margin-bottom:8px; font-family:'JetBrains Mono',monospace; }
+  .table-wrap { border:1px solid #26362f; border-radius:10px; overflow:hidden; }
+  .table-scroll { max-height:520px; overflow:auto; }
+  .status-active { color:#5fae7c; font-weight:600; font-size:11.5px; display:flex; align-items:center; gap:5px; }
+  .status-inactive { color:#a06a6a; font-weight:600; font-size:11.5px; display:flex; align-items:center; gap:5px; }
+  .pill { font-size:11px; padding:3px 7px; border-radius:5px; font-weight:600; }
+  .mono { font-family:'JetBrains Mono',monospace; color:#9fb0a6; }
+  .name-cell { font-weight:600; color:#f2f5f1; }
+  .modal-backdrop { position:fixed; inset:0; background:#05090780; backdrop-filter:blur(3px); display:none; align-items:flex-end; justify-content:center; z-index:50; }
+  .modal-backdrop.open { display:flex; }
+  .modal { background:#131e1a; border:1px solid #26362f; border-radius:16px 16px 0 0; width:100%; max-width:480px; max-height:88vh; overflow-y:auto; padding:20px; animation:slideUp 0.2s ease-out; }
+  @keyframes slideUp { from{ transform:translateY(24px); opacity:0; } to{ transform:translateY(0); opacity:1; } }
+  .modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-title { font-family:'Space Grotesk',sans-serif; font-weight:600; font-size:17px; }
+  .modal-close { background:none; border:none; color:#7d9186; cursor:pointer; font-size:20px; }
+  .field-label { font-size:11.5px; color:#7d9186; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:5px; display:block; }
+  .field-input { width:100%; background:#0d1512; border:1px solid #26362f; border-radius:8px; padding:10px 12px; color:#e8ede9; font-size:14px; margin-bottom:12px; }
+  .submit-btn { width:100%; background:#c9a24a; color:#0d1512; border:none; border-radius:8px; padding:12px 0; font-weight:700; font-size:14.5px; cursor:pointer; margin-top:4px; }
+  footer.note { padding: 4px 16px 40px; text-align:center; font-size:12px; color:#4d5f56; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <div class="brand">
+      <div class="logo">🏋️</div>
+      <div>
+        <div class="title">Grace Square Fitness Club</div>
+        <div class="subtitle" id="memberCountLabel">— MEMBERS · LOADING</div>
+      </div>
+    </div>
+    <button class="btn-gold" id="openAddBtn">+ Add Member</button>
+  </div>
+</div>
+
+<div class="wrap" style="padding:16px 16px 0;">
+  <div class="notice" id="dataNotice">↻ Syncing with Supabase…</div>
+
+  <div class="cards" id="statCards"></div>
+
+  <div style="margin-bottom:18px;">
+    <div class="section-label">COLLECTION</div>
+    <div class="period-row" id="periodRow"></div>
+    <div class="date-row" id="customRangeRow" style="display:none;">
+      📅 <input type="date" class="input" id="fromDate"> <span style="color:#6c8177; font-size:12.5px;">to</span> <input type="date" class="input" id="toDate">
+    </div>
+    <div class="collection-box">
+      <div>
+        <div class="collection-total" id="collectionTotal">₹0</div>
+        <div class="collection-sub" id="collectionSub">0 registrations</div>
+      </div>
+      <div style="font-size:28px;">₹</div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:16px;">
+    <div class="section-label">🏢 BUILDING DIRECTORY</div>
+    <div class="tower-row" id="towerRow"></div>
+  </div>
+
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" placeholder="Search name, ID, wing, phone">
+    </div>
+    <button class="filter-btn" id="openFilterBtn">☰ Filters</button>
+  </div>
+
+  <div class="active-filters" id="activeFilters" style="display:none;"></div>
+  <div class="count-line" id="countLine">0 SHOWN</div>
+
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th><th>ID</th><th>Name</th><th>Wing/Flat</th><th>Contact</th>
+            <th>Ends</th><th>Occupancy</th><th>Fees</th><th>Payment</th>
+          </tr>
+        </thead>
+        <tbody id="memberRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer class="note">Runs entirely client-side · data reads and writes go straight to Supabase</footer>
+
+<!-- Filter modal -->
+<div class="modal-backdrop" id="filterModal">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Filters</div><button class="modal-close" id="closeFilterBtn">✕</button></div>
+    <label class="field-label">Status</label>
+    <select class="field-input" id="statusFilterSel">
+      <option value="ALL">All</option>
+      <option value="ACTIVE">Active only</option>
+      <option value="INACTIVE">Inactive only</option>
+    </select>
+    <label class="field-label">Building / Tower</label>
+    <select class="field-input" id="towerFilterSel"><option value="ALL">All towers</option></select>
+    <button class="submit-btn" id="applyFilterBtn">Apply</button>
+  </div>
+</div>
+
+<!-- Add member modal -->
+<div class="modal-backdrop" id="addModal">
+  <div class="modal">
+    <div class="modal-head"><div class="modal-title">Add Member</div><button class="modal-close" id="closeAddBtn">✕</button></div>
+    <form id="addForm">
+      <label class="field-label">Full Name</label>
+      <input class="field-input" id="f_name" required placeholder="e.g. Zoya Ansari">
+      <label class="field-label">Gender</label>
+      <select class="field-input" id="f_gender"><option value="M">Male</option><option value="F">Female</option></select>
+      <label class="field-label">Wing / Flat</label>
+      <input class="field-input" id="f_wing" placeholder="e.g. D4/1201">
+      <label class="field-label">Contact Number</label>
+      <input class="field-input" id="f_contact" placeholder="10-digit mobile">
+      <label class="field-label">Occupancy</label>
+      <select class="field-input" id="f_ownership"><option value="OWNER">Owner</option><option value="TENANT">Tenant</option><option value="RENT">Rent</option></select>
+      <label class="field-label">Preferred Timing</label>
+      <input class="field-input" id="f_timing" placeholder="e.g. MORNING">
+      <label class="field-label">Fees</label>
+      <input class="field-input" id="f_fees" value="700">
+      <label class="field-label">Payment Type</label>
+      <select class="field-input" id="f_payment"><option value="UPI">UPI</option><option value="CASH">Cash</option></select>
+      <label class="field-label">Remark</label>
+      <input class="field-input" id="f_remark" placeholder="e.g. Aadhaar pending">
+      <button type="submit" class="submit-btn" id="submitLabel">Add Member</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// ---- Supabase connection ----
+const SUPABASE_URL = "https://mydxlhnkminbsstqyxdz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_E73PHTT0ECi48gtC2F897A_K6HTNaZI";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ---- Raw roster, exactly as recorded in the sheet (no cleaning / reformatting) ----
+// Kept only as the one-time seed reference — the live roster now comes from Supabase.
+const RAW = [
+["28-Jun-26","GSFC01","AIMAN SARFARZ KHAN","F","D4/2001","8451992792","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC02","KHAN SUMAYA ZUBAIR","F","D4/2002","7666111854","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC03","TAYYABA ANSARI","F","D4/2004","7045880096","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC04","FAISAL ABDUL JAMIL MOMIN","M","A1/701","7666815921","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC05","MOHD SAJID A.J. MOMIN","M","A1/701","9421724872","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC06","MANSURI MOHD SOHAIL","M","A7/301","8369530521","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI",""],
+["28-Jun-26","GSFC07","SIRAJ AHMED WALIULLAH","M","A7/703","9987633513","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI","1 Photo PENDING"],
+["28-Jun-26","GSFC08","SHAIKH SHEHNAZ WASEEM","F","D4/602","9004009761","1-Jul-26","31-Jul-26","OWNER","MORNING","700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC09","EKRAMA KHALID ANSARI","M","D4/2004","8097501695","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","CASH",""],
+["28-Jun-26","GSFC10","ADIL RIZWAN SHAIKH","M","D4/804","7977710252","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","UPI",""],
+["28-Jun-26","GSFC11","FAHAD RIZWAN SHAIKH","M","D4/804","8097165149","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","UPI",""],
+["28-Jun-26","GSFC12","IBRAHIM RIZWAN SHAIKH","M","D4/804","7977710252","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC13","SHOEB SHAIKH","M","D4/1104","7977733898","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC14","FAROOQUI MOHD SAIF","M","D5/1304","9082587569","1-Jul-26","31-Jul-26","OWNER","AFTERNOON","700","CASH",""],
+["28-Jun-26","GSFC16","JAVED SHAIKH","M","D3/1601","9967379363","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC17","SHAHID SHAIKH","M","D3/1601","9136379363","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC18","JUNAID MOHIUDDIN SHAIKH","M","D4/1104","7977733898","1-Jul-26","31-Jul-26","OWNER","","700","UPI","S"],
+["28-Jun-26","GSFC19","SABREEN GULAM MUKRI","F","D3/2002","9920897771","1-Jul-26","31-Jul-26","TENANT","","700","UPI",""],
+["28-Jun-26","GSFC20","FAIZ SHAIKH","M","D4/1703","7860978656","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC21","RAINA SIDDIQUI","F","D5/402","9022818782","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC22","FAZAL TAUQIR","M","D4/1302","8425028820","1-Jul-26","31-Jul-26","OWNER","","700","CASH","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC23","MOHAMMAD ATIF ANSARI","M","D4/401","9773581440","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC24","ZAIBA MOHAMMAD ATIF ANSARI","F","D4/401","9930475357","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC25","NAGMA FIROZ SIDDIQUI","F","D5/402","9022818782","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC26","FIROZ AHMED SIDDIQUI","M","D5/402","9004141245","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC29","MUNEERA BEEVI","F","D5/1302","9987210706","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC30","SAYYED HASSAN ASHAR","M","C1/702","8689806159","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["28-Jun-26","GSFC31","KHAN MUHAMMAD ARSALAN","M","C2/302","7738415742","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC32","ZAMEER KHAN","M","A4/501","9029042100","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC33","TAUHID SHAIKH","M","D3/2105","8591976123","1-Jul-26","31-Jul-26","OWNER","","700","","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC34","MOHD ANSAR AKHTAR","M","C4/304","8828039869","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC35","SAIMA ZAMEER KHAN","F","A4/501","9029042100","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC36","MIRAJUDDIN SIDDIQUI","M","D3/2004","9819093705","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["28-Jun-26","GSFC38","SAHIL SHAKEEL GULBAR","M","D4/1504","7666633358","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC39","SABIL SHAKEEL GULBAR","M","D4/1504","9769378544","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC40","MOHAMMAD ANAS ARIF","M","D3/802","9820234439","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["29-Jun-26","GSFC41","TOUFIQUE INAMDAR","M","A4/202","8291821982","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["29-Jun-26","GSFC43","SHAIKH RAUNAK DILSHAD","F","D5/601","9372445123","1-Jul-26","31-Jul-26","OWNER","","700","CASH","AADHAAR XEROX + 2 PHOTO PENDING"],
+["29-Jun-26","GSFC44","MEHAK ASHAQUE KAZI","F","D4/504","7506065274","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["29-Jun-26","GSFC45","USAAM SALIM DOGLI","M","C1/401","9324478994","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["29-Jun-26","GSFC46","MOHD MUZZAMMIL SALIM DAGLI","M","C1/401","9867629220","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["29-Jun-26","GSFC47","MOHD AKRAM SHAIKH","M","D3/1403","9892001131","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["29-Jun-26","GSFC48","KHAN IFFAT","F","D5/1104","7304634455","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["29-Jun-26","GSFC50","ANSARI ALTAMASH","M","A4/403","9321897936","1-Jul-26","31-Jul-26","OWNER","","700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["30-Jun-26","GSFC51","JUBAIDA KHAN","F","A3/201","9821732052","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["30-Jun-26","GSFC52","MANTASHA KHAN","F","A3/201","9137205737","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["30-Jun-26","GSFC53","RAHEEN KHAN","F","A3/201","9324247220","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["30-Jun-26","GSFC54","SABA NAAZ","F","C3/206","9766389574","1-Jul-26","31-Jul-26","RENT","","700","UPI","AADHAAR XEROX PENDING"],
+["30-Jun-26","GSFC55","NAZEER KHAN","M","C2/601","9768307074","1-Jul-26","31-Jul-26","RENT","","700","UPI",""],
+["30-Jun-26","GSFC56","SOBIYA KHAN","F","C2/601","9768307074","1-Jul-26","31-Jul-26","RENT","","700","UPI",""],
+["30-Jun-26","GSFC58","SHAHIN AKHTAR","F","A4/204","9892040231","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["30-Jun-26","GSFC59","TANIMA SHAIKH","F","A2/702","9967035055","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["30-Jun-26","GSFC60","ROSHAN SHAIKH","F","C3/604","8591446364","1-Jul-26","31-Jul-26","RENT","","700","UPI","1 PHOTO PENDING"],
+["30-Jun-26","GSFC61","SURAJ IQBAAL","M","D4/103","7066485008","1-Jul-26","31-Jul-26","OWNER","","700","UPI","XEROX  PHOTO MISSING"],
+["30-Jun-26","GSFC63","MOHAMMAD SOHAIL","M","A6/304","7906192364","1-Jul-26","31-Jul-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["30-Jun-26","GSFC64","ALI AHMAD QURESHI","M","C3/703","8497588804","1-Jul-26","31-Jul-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["30-Jun-26","GSFC65","AMIR MOHD QURESHI","M","C3/703","9897588804","1-Jul-26","31-Jul-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["1-Jul-26","GSFC66","KASHMIRI KEKASHAA","F","C5/503","9769055606","1-Jul-26","31-Jul-26","OWNER","","700","UPI","PHOTO MISSING"],
+["1-Jul-26","GSFC67","KASMIRI KISHUWR","F","C5/503","9769056606","1-Jul-26","31-Jul-26","OWNER","","700","UPI",""],
+["1-Jul-26","GSFC68","SANIYA PATEL","F","A5/203","9082695128","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["1-Jul-26","GSFC69","AATIKA KAZI","F","A4/703","9967061621","1-Jul-26","31-Jul-26","OWNER","","700","CASH",""],
+["2-Jul-26","GSFC70","ZAHIDA NAJIB CHOUGLE","F","D5/201","7666262691","2-Jul-26","1-Aug-26","OWNER","","700","CASH",""],
+["2-Jul-26","GSFC71","SAMEER AHMAD KHAN","M","D3/1203","8355830082","2-Jul-26","1-Aug-26","OWNER","","700","CASH","PHOTO MISSING"],
+["2-Jul-26","GSFC72","SHAIKH ALVINA","F","D4/1701","9326611554","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC73","NAUSHIN RIZWAN SHAIKH","F","D4/804","7977312732","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX MISSING"],
+["2-Jul-26","GSFC74","MARYAM IBRAHIM SHAIKH","F","D4/803","9869663305","2-Jul-26","1-Aug-26","OWNER","","700","CASH",""],
+["2-Jul-26","GSFC75","SALMA NADEEM","F","A5/102","7021912939","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC76","SANIA AMJAD KHAN","F","A2/704","8169458527","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC77","FATIMA KHAN","F","A2/401","9867538854","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC78","MAIMOONA A MUKHTIYAR","F","D4/203","9892587939","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC79","SHIMA PARVEEN","F","D4/903","9321319844","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX MISSING"],
+["2-Jul-26","GSFC80","NAWAZISH AZADREHMAN MONDAL","F","D4/1404","8169572884","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC81","TOOBA BAKSH","F","D3/2205","9136396947","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC83","SHAKIL SIDDIQUE","M","D3/702","8828081397","2-Jul-26","1-Aug-26","OWNER","","700","UPI",""],
+["2-Jul-26","GSFC84","NIKHAT SHAKIL SIDDIQUE","F","D3/702","9930743856","2-Jul-26","1-Aug-26","OWNER","","700","UPI",""],
+["2-Jul-26","GSFC85","SHAIKH REHAN","M","A6/703","8422849864","2-Jul-26","1-Aug-26","OWNER","","700","UPI","PHOTO MISSING"],
+["2-Jul-26","GSFC86","JASIR ZAKIR HUSSAIN","M","D5/203","9167012051","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC87","SIDDIQUI ARSHAD","M","D4/301","9987590925","2-Jul-26","1-Aug-26","OWNER","","700","UPI","PHOTO MISSING"],
+["2-Jul-26","GSFC88","SIDDIQUI MOHD AFFAN","M","D4/301","7738692309","2-Jul-26","1-Aug-26","OWNER","","700","UPI","PHOTO MISSING"],
+["2-Jul-26","GSFC89","IMRAN ANSARI","M","A6/202","9664629908","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["2-Jul-26","GSFC90","ANSARI FURQAN","M","A6/202","7700098114","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["3-Jul-26","GSFC91","BADRE ALAM","M","A6/403","8104702272","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["4-Jul-26","GSFC92","SAMAR ALI","M","D4/1101","7304841020","2-Jul-26","1-Aug-26","OWNER","","700","CASH","XEROX PHOTO MISSING"],
+["5-Jul-26","GSFC93","AYMAAN FAHIM NOOR","M","A4/404","9136783145","2-Jul-26","1-Aug-26","OWNER","","700","CASH",""],
+["6-Jul-26","GSFC94","AZHARUDDIN ANWAR SHAIKH","M","D3/1505","9819253222","2-Jul-26","1-Aug-26","OWNER","","700","UPI",""],
+["7-Jul-26","GSFC95","SAIF PATEL","M","A5/203","7400329807","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["8-Jul-26","GSFC96","SHAIBAN SHAUKAT ALI","M","A3/502","8779647101","2-Jul-26","1-Aug-26","OWNER","","700","UPI","XEROX PHOTO MISSING"],
+["9-Jul-26","GSFC97","NAZIYA NM.K","F","A5/701","9833341493","3-Jul-26","2-Aug-26","OWNER","","700","CASH",""],
+["10-Jul-26","GSFC98","AFRIN KHAN","F","D4/902","8356820596","3-Jul-26","2-Aug-26","","","700","UPI","XEROX PHOTO MISSING"],
+["28-Jun-26","GSFC15","MOHD ANNAS SAYYED","M","A5/301","983328779","46204","46295","TENANT","AFTERNOON","1700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["28-Jun-26","GSFC27","SHAUKAT ALI KHAN","M","D4/1002","7303949717","1-Jul-26","30-Sep-26","OWNER","","1700","UPI","AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC28","ZAIBUNNISA S.A. KHAN","F","D4/1002","9324653282","1-Jul-26","30-Sep-26","OWNER","","1700","UPI"," AADHAAR XEROX PENDING"],
+["28-Jun-26","GSFC37","ANSARI SALMAN","M","D5/603","8879259514","46204","46295","OWNER","","1700","UPI","AADHAAR XEROX + 2 PHOTO PENDING"],
+["29-Jun-26","GSFC42","ABDUL BASIT MUNSHI","M","C2/704","8419914567","1-Jul-26","30-Sep-26","OWNER","","1700","UPI","AADHAAR XEROX + 1 PHOTO PENDING"],
+["30-Jun-26","GSFC57","ZEBA ABBAS SHAIKH","F","C2/602","7738538515","1-Jul-26","30-Sep-26","OWNER","","1700","UPI","AADHAAR XEROX + 1 PHOTO PENDING"],
+["2-Jul-26","GSFC82","MOIN IQBAL SHAIKH","M","D4/1502","9833313895","1-Jul-26","30-Sep-26","OWNER","","1700","CASH",""],
+["30-Jun-26","GSFC62","KHAN YUSUF","M","C5/602","8655761148","01-JUL-26-","31-Dec-26","RENT","","Payment Failed","","XEROX MISSING"],
+["29-Jun-26","GSFC49","JUNAID AHMED MOHD ATAURREHMAN SHAIKH","M","D3/2006","8655628272","1-Jul-26","30-Jun-27","OWNER","","5500","UPI",""]
+];
+const FIELDS = ["regDate","id","name","gender","wing","contact","startDate","endDate","ownership","timing","fees","paymentType","remark"];
+// Supabase column -> app field name, matching FIELDS order above
+const DB_COLUMNS = ["reg_date","member_id","name","gender","wing","contact","start_date","end_date","ownership","timing","fees","payment_type","remark"];
+function rowFromDb(dbRow){
+  return Object.fromEntries(FIELDS.map((f,i)=>[f, dbRow[DB_COLUMNS[i]] ?? ""]));
+}
+
+const MONTHS = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+function excelSerialToDate(n){ const utcDays = Math.floor(n - 25569); return new Date(utcDays*86400*1000); }
+function parseFlexDate(str){
+  if (!str) return null;
+  const s = String(str).trim().replace(/-+$/,"");
+  if (/^\d+$/.test(s)) return excelSerialToDate(parseInt(s,10));
+  const m = /^(\d{1,2})-([A-Za-z]{3})-(\d{2,4})$/.exec(s);
+  if (m){
+    const day = parseInt(m[1],10);
+    const mon = MONTHS[m[2].slice(0,1).toUpperCase()+m[2].slice(1,3).toLowerCase()];
+    let yr = parseInt(m[3],10); if (yr<100) yr += 2000;
+    if (mon===undefined) return null;
+    return new Date(yr,mon,day);
+  }
+  return null;
+}
+function fmtDate(d){ if(!d) return "—"; return d.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"}); }
+function isoDate(d){ return d.toISOString().slice(0,10); }
+function towerOf(wing){ const m = /^([A-Za-z]+\d*)/.exec(wing||""); return m ? m[1] : "—"; }
+
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+
+// ---- state ----
+let roster = [];
+let query = "";
+let towerFilter = "ALL";
+let statusFilter = "ALL";
+let period = "today";
+let customFrom = isoDate(new Date(2026,5,28));
+let customTo = isoDate(TODAY);
+
+async function loadRoster(){
+  const notice = document.getElementById("dataNotice");
+  const { data, error } = await sb
+    .from("gsfc_members")
+    .select("*")
+    .order("reg_date", { ascending: true });
+
+  if (error){
+    notice.textContent = "⚠ Couldn't reach Supabase — check your schema.sql and API key. (" + error.message + ")";
+    return;
+  }
+
+  roster = data.map(rowFromDb);
+  notice.textContent = "↻ Live from Supabase · " + roster.length + " members loaded";
+  render();
+}
+
+function getRoster(){ return roster; }
+function enrich(roster){
+  return roster.map(m => {
+    const end = parseFlexDate(m.endDate);
+    const reg = parseFlexDate(m.regDate);
+    const active = end ? end >= TODAY : true;
+    return {...m, _end:end, _reg:reg, _active:active};
+  });
+}
+
+function nextId(roster){
+  const nums = roster.map(m => parseInt((m.id||"").replace(/\D/g,""),10)).filter(n=>!isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return "GSFC" + String(max+1).padStart(2,"0");
+}
+
+function render(){
+  const roster = getRoster();
+  const enriched = enrich(roster);
+
+  document.getElementById("memberCountLabel").textContent = enriched.length + " MEMBERS · " + new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"});
+
+  // stat cards
+  const total = enriched.length;
+  const active = enriched.filter(m=>m._active).length;
+  const inactive = total - active;
+  const pendingDocs = enriched.filter(m=>m.remark && m.remark.trim()).length;
+  const cardsData = [
+    {icon:"👥", label:"Total", value:total, accent:"#c9a24a"},
+    {icon:"✅", label:"Active", value:active, accent:"#5fae7c"},
+    {icon:"⛔", label:"Inactive", value:inactive, accent:"#8b5a5a"},
+    {icon:"⚠️", label:"Docs Pending", value:pendingDocs, accent:"#d97757"}
+  ];
+  document.getElementById("statCards").innerHTML = cardsData.map(c => `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:${c.accent}22; color:${c.accent};">${c.icon}</div>
+        <span class="card-label">${c.label}</span>
+      </div>
+      <div class="card-value">${c.value}</div>
+    </div>`).join("");
+
+  // period buttons
+  const periods = [["today","Today"],["week","This Week"],["month","This Month"],["custom","Custom"]];
+  document.getElementById("periodRow").innerHTML = periods.map(([key,label]) =>
+    `<button class="period-btn ${period===key?'active':''}" data-period="${key}">${label}</button>`
+  ).join("");
+  document.querySelectorAll(".period-btn").forEach(btn => btn.onclick = () => { period = btn.dataset.period; render(); });
+  document.getElementById("customRangeRow").style.display = period === "custom" ? "flex" : "none";
+  document.getElementById("fromDate").value = customFrom;
+  document.getElementById("toDate").value = customTo;
+
+  // collection calc
+  let from, to;
+  if (period === "today") { from = new Date(TODAY); to = new Date(TODAY); }
+  else if (period === "week") {
+    const dow = (TODAY.getDay()+6)%7;
+    from = new Date(TODAY); from.setDate(TODAY.getDate()-dow);
+    to = new Date(TODAY);
+  } else if (period === "month") {
+    from = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+    to = new Date(TODAY);
+  } else {
+    from = new Date(customFrom); to = new Date(customTo);
+  }
+  const fromZero = new Date(from.getFullYear(),from.getMonth(),from.getDate());
+  const toEnd = new Date(to.getFullYear(),to.getMonth(),to.getDate());
+  const inRangeMembers = enriched.filter(m => m._reg && m._reg >= fromZero && m._reg <= toEnd);
+  const collTotal = inRangeMembers.reduce((s,m)=>{ const n=parseInt(m.fees,10); return s+(isNaN(n)?0:n); },0);
+  document.getElementById("collectionTotal").textContent = "₹" + collTotal.toLocaleString("en-IN");
+  document.getElementById("collectionSub").textContent = `${inRangeMembers.length} registration${inRangeMembers.length!==1?'s':''} · ${fmtDate(fromZero)} – ${fmtDate(toEnd)}`;
+
+  // towers
+  const towerMap = {};
+  enriched.forEach(m => { const t = towerOf(m.wing); towerMap[t] = (towerMap[t]||0)+1; });
+  const towerCounts = Object.entries(towerMap).sort((a,b)=>b[1]-a[1]);
+  document.getElementById("towerRow").innerHTML = towerCounts.map(([t,c]) =>
+    `<button class="tower-btn ${towerFilter===t?'active':''}" data-tower="${t}">${t} <span style="opacity:.7">${c}</span></button>`
+  ).join("");
+  document.querySelectorAll(".tower-btn").forEach(btn => btn.onclick = () => {
+    towerFilter = towerFilter === btn.dataset.tower ? "ALL" : btn.dataset.tower;
+    render();
+  });
+
+  const towerSel = document.getElementById("towerFilterSel");
+  towerSel.innerHTML = '<option value="ALL">All towers</option>' + towerCounts.map(([t])=>`<option value="${t}">${t}</option>`).join("");
+  towerSel.value = towerFilter;
+  document.getElementById("statusFilterSel").value = statusFilter;
+
+  // active filter chips
+  const chips = [];
+  if (statusFilter!=="ALL") chips.push(`<span>Status: ${statusFilter}</span>`);
+  if (towerFilter!=="ALL") chips.push(`<span>Tower: ${towerFilter}</span>`);
+  const afEl = document.getElementById("activeFilters");
+  if (chips.length){
+    afEl.style.display = "flex";
+    afEl.innerHTML = chips.join("") + '<button id="clearFiltersBtn">clear</button>';
+    document.getElementById("clearFiltersBtn").onclick = () => { statusFilter="ALL"; towerFilter="ALL"; render(); };
+  } else { afEl.style.display = "none"; afEl.innerHTML = ""; }
+
+  // filtered rows
+  const q = query.trim().toLowerCase();
+  const filtered = enriched.filter(m => {
+    if (towerFilter!=="ALL" && towerOf(m.wing)!==towerFilter) return false;
+    if (statusFilter==="ACTIVE" && !m._active) return false;
+    if (statusFilter==="INACTIVE" && m._active) return false;
+    if (!q) return true;
+    return m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q) ||
+      (m.wing||"").toLowerCase().includes(q) || (m.contact||"").includes(q);
+  });
+  document.getElementById("countLine").textContent = filtered.length + " SHOWN";
+
+  document.getElementById("memberRows").innerHTML = filtered.map(m => {
+    const ownerColor = m.ownership==="OWNER" ? "#7ba7c9" : m.ownership==="TENANT" ? "#c9a24a" : m.ownership==="RENT" ? "#d97757" : "#6c8177";
+    const payColor = m.paymentType==="UPI" ? "#7ba7c9" : m.paymentType==="CASH" ? "#c9a24a" : "#d97757";
+    return `<tr>
+      <td><span class="${m._active?'status-active':'status-inactive'}">${m._active?'✅ Active':'⛔ Inactive'}</span></td>
+      <td class="mono">${m.id}</td>
+      <td class="name-cell">${m.name}</td>
+      <td>${m.wing}</td>
+      <td class="mono" style="font-size:12px;">${m.contact}</td>
+      <td style="font-size:12px; color:#9fb0a6;">${m.endDate}</td>
+      <td><span class="pill" style="background:${ownerColor}22; color:${ownerColor};">${m.ownership||"—"}</span></td>
+      <td>₹${m.fees}</td>
+      <td style="font-size:12px; color:${payColor};">${m.paymentType || (m.fees==="Payment Failed" ? "Failed" : "—")}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ---- events ----
+document.getElementById("searchInput").addEventListener("input", e => { query = e.target.value; render(); });
+document.getElementById("fromDate").addEventListener("change", e => { customFrom = e.target.value; render(); });
+document.getElementById("toDate").addEventListener("change", e => { customTo = e.target.value; render(); });
+
+document.getElementById("openFilterBtn").onclick = () => document.getElementById("filterModal").classList.add("open");
+document.getElementById("closeFilterBtn").onclick = () => document.getElementById("filterModal").classList.remove("open");
+document.getElementById("filterModal").addEventListener("click", e => { if (e.target.id==="filterModal") e.target.classList.remove("open"); });
+document.getElementById("applyFilterBtn").onclick = () => {
+  statusFilter = document.getElementById("statusFilterSel").value;
+  towerFilter = document.getElementById("towerFilterSel").value;
+  document.getElementById("filterModal").classList.remove("open");
+  render();
+};
+
+document.getElementById("openAddBtn").onclick = () => {
+  document.getElementById("submitLabel").textContent = "Add Member (" + nextId(getRoster()) + ")";
+  document.getElementById("addModal").classList.add("open");
+};
+document.getElementById("closeAddBtn").onclick = () => document.getElementById("addModal").classList.remove("open");
+document.getElementById("addModal").addEventListener("click", e => { if (e.target.id==="addModal") e.target.classList.remove("open"); });
+
+document.getElementById("addForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = document.getElementById("f_name").value.trim();
+  if (!name) return;
+  const id = nextId(getRoster());
+  const regStr = TODAY.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"}).replace(/ /g,"-");
+  const endD = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, TODAY.getDate());
+  const endStr = endD.toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"}).replace(/ /g,"-");
+
+  const submitBtn = document.getElementById("submitLabel");
+  const prevLabel = submitBtn.textContent;
+  submitBtn.textContent = "Saving…";
+  submitBtn.disabled = true;
+
+  const { error } = await sb.from("gsfc_members").insert({
+    member_id: id,
+    reg_date: regStr,
+    name: name.toUpperCase(),
+    gender: document.getElementById("f_gender").value,
+    wing: document.getElementById("f_wing").value.trim(),
+    contact: document.getElementById("f_contact").value.trim(),
+    start_date: regStr,
+    end_date: endStr,
+    ownership: document.getElementById("f_ownership").value,
+    timing: document.getElementById("f_timing").value.trim(),
+    fees: document.getElementById("f_fees").value.trim(),
+    payment_type: document.getElementById("f_payment").value,
+    remark: document.getElementById("f_remark").value.trim()
+  });
+
+  submitBtn.disabled = false;
+  submitBtn.textContent = prevLabel;
+
+  if (error){
+    alert("Couldn't save this member: " + error.message);
+    return;
+  }
+
+  e.target.reset();
+  document.getElementById("f_fees").value = "700";
+  document.getElementById("addModal").classList.remove("open");
+  await loadRoster();
+});
+
+loadRoster();
+</script>
+</body>
+</html>
