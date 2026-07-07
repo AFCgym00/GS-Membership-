@@ -1,0 +1,32 @@
+-- Grace Square Fitness Club — member roster schema
+-- Run this in the Supabase SQL editor, then run seed.sql to load existing members.
+
+create table if not exists public.gsfc_members (
+  member_id text primary key,
+  reg_date text,
+  name text not null,
+  gender text,
+  wing text,
+  contact text,
+  start_date text,
+  end_date text,
+  ownership text,
+  timing text,
+  fees text,
+  payment_type text,
+  remark text,
+  created_at timestamptz not null default now()
+);
+
+-- This is a public, no-login static site (by design — matches the original
+-- Google Sheet-mirrored dashboard). The anon key can read and insert rows.
+-- Anyone with the site URL can view and add members, same as before.
+-- If you later want to lock this down, add Supabase Auth and replace these
+-- policies with ones scoped to `auth.role() = 'authenticated'`.
+alter table public.gsfc_members enable row level security;
+
+create policy "public read" on public.gsfc_members
+  for select using (true);
+
+create policy "public insert" on public.gsfc_members
+  for insert with check (true);
